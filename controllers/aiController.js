@@ -170,3 +170,44 @@ export const generateImage = async (req, res) => {
     });
   }
 };
+
+export const removeImageBackground = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { image } = req.file;
+
+    const plan = req.plan;
+
+    if (plan !== "premium") {
+      return res.status(400).json({
+        message: "This feature is only available for premium subscriptions",
+      });
+    }
+
+    const { secure_url } = await cloudinary.uploader.upload(image.path, {
+      transformation: [
+        {
+          effect: "background_removal",
+          backgournd_removal: "remove_the_background",
+        },
+      ],
+    });
+
+    await prisma.creations.create({
+      data: {
+        user_id: userId,
+        prompt: "Remove background from image",
+        content: secure_url,
+        type: "image",
+      },
+    });
+
+    res.json({ secure_url });
+  } catch (error) {
+    console.log(error.message);
+
+    res.status(400).json({
+      message: error.message,
+    });
+  }
+};
