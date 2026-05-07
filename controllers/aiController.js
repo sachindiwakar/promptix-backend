@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { prisma } from "../config/db.js";
 import { clerkClient } from "@clerk/express";
 import axios from "axios";
+import { v2 as cloudinary } from "cloudinary";
 
 const AI = new OpenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -110,6 +111,57 @@ export const generateBlogTitle = async (req, res) => {
     }
 
     res.json({ content });
+  } catch (error) {
+    console.log(error.message);
+
+    res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const generateImage = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { prompt, publish } = req.body;
+
+    const plan = req.plan;
+
+    if (plan !== "premium") {
+      return res.status(400).json({
+        message: "This feature is only available for premium subscriptions",
+      });
+    }
+
+    const formData = new FormData();
+    formData.append("prompt", prompt);
+
+    const { data } = await axios.post(
+      "https://clipdrop-api.co/text-to-image/v1",
+      formData,
+      {
+        headers: {
+          "x-api-key": process.env.CLIPDROP_API_KEY,
+        },
+        responseType: "arraybuffer",
+      },
+    );
+
+    const base64Image = `data:image/png;base64,${Buffer.from(data, "binary").toString("base64")}`;
+
+    const { secure_url } = await cloudinary.uploader.upload(base64Image);
+
+    await prisma.creations.create({
+      data: {
+        user_id: userId,
+        prompt,
+        content: secure_url,
+        type: "image",
+        publish,
+      },
+    });
+
+    res.json({ secure_url });
   } catch (error) {
     console.log(error.message);
 
