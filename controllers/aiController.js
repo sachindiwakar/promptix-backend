@@ -211,3 +211,43 @@ export const removeImageBackground = async (req, res) => {
     });
   }
 };
+
+export const removeImageObject = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { object } = req.body;
+    const { image } = req.file;
+
+    const plan = req.plan;
+
+    if (plan !== "premium") {
+      return res.status(400).json({
+        message: "This feature is only available for premium subscriptions",
+      });
+    }
+
+    const { public_id } = await cloudinary.uploader.upload(image.path);
+
+    const imageUrl = cloudinary.url(public_id, {
+      transformation: [{ effect: `gen_remove:${object}` }],
+      resource_type: "image",
+    });
+
+    await prisma.creations.create({
+      data: {
+        user_id: userId,
+        prompt: `Removed ${object} from image`,
+        content: imageUrl,
+        type: "image",
+      },
+    });
+
+    res.json({ imageUrl });
+  } catch (error) {
+    console.log(error.message);
+
+    res.status(400).json({
+      message: error.message,
+    });
+  }
+};
