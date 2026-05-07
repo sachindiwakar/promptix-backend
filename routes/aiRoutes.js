@@ -6,6 +6,7 @@ import {
   generateImage,
   removeImageBackground,
   removeImageObject,
+  reviewResume,
 } from "../controllers/aiController.js";
 import { upload } from "../config/multer.js";
 
@@ -26,5 +27,6 @@ aiRouter.post(
   auth,
   removeImageObject,
 );
+aiRouter.post("/review-resume", upload.single("resume"), auth, reviewResume);
 
 export default aiRouter;

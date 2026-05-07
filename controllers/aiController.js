@@ -3,6 +3,8 @@ import { prisma } from "../config/db.js";
 import { clerkClient } from "@clerk/express";
 import axios from "axios";
 import { v2 as cloudinary } from "cloudinary";
+import fs from "fs";
+import { PDFParse } from "pdf-parse";
 
 const AI = new OpenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -243,6 +245,67 @@ export const removeImageObject = async (req, res) => {
     });
 
     res.json({ imageUrl });
+  } catch (error) {
+    console.log(error.message);
+
+    res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const reviewResume = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const resume = req.file;
+
+    const plan = req.plan;
+
+    if (plan !== "premium") {
+      return res.status(400).json({
+        message: "This feature is only available for premium subscriptions",
+      });
+    }
+
+    if (resume.size > 5 * 1024 * 1024) {
+      res
+        .status(400)
+        .json({ message: "Resume file size exceed allowed file size (5 MB)." });
+    }
+
+    const dataBuffer = fs.readFileSync(resume.path);
+    const parser = new PDFParse({
+      data: dataBuffer,
+    });
+
+    const pdfData = await parser.getText();
+
+    const prompt = `Review the following resume and provide constructive feedback on its strengths, weaknesses, and areas for improvement. Resume Content:\n\n${pdfData.text}`;
+
+    const response = await AI.chat.completions.create({
+      model: "gemini-3-flash-preview",
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
+      max_completion_tokens: 1000,
+    });
+
+    const content = response.choices[0].message.content;
+
+    await prisma.creations.create({
+      data: {
+        user_id: userId,
+        prompt: "Review the uploaded resume.",
+        content,
+        type: "review-resume",
+      },
+    });
+
+    res.json({ content });
   } catch (error) {
     console.log(error.message);
 
