@@ -163,7 +163,7 @@ export const generateImage = async (req, res) => {
       },
     });
 
-    res.json({ secure_url });
+    res.json({ content: secure_url });
   } catch (error) {
     console.log(error.message);
 
