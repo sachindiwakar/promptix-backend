@@ -217,7 +217,7 @@ export const removeImageObject = async (req, res) => {
   try {
     const userId = req.userId;
     const { object } = req.body;
-    const { image } = req.file;
+    const image = req.file;
 
     const plan = req.plan;
 
@@ -227,12 +227,15 @@ export const removeImageObject = async (req, res) => {
       });
     }
 
-    const { public_id } = await cloudinary.uploader.upload(image.path);
-
-    const imageUrl = cloudinary.url(public_id, {
-      transformation: [{ effect: `gen_remove:${object}` }],
-      resource_type: "image",
+    const result = await cloudinary.uploader.upload(image.path, {
+      eager: [
+        {
+          effect: `gen_remove:${object}`,
+        },
+      ],
     });
+
+    const imageUrl = result.eager[0].secure_url;
 
     await prisma.creations.create({
       data: {
@@ -243,7 +246,7 @@ export const removeImageObject = async (req, res) => {
       },
     });
 
-    res.json({ imageUrl });
+    res.json({ content: imageUrl });
   } catch (error) {
     console.log(error.message);
 
