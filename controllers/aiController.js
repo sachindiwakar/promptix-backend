@@ -4,7 +4,7 @@ import { clerkClient } from "@clerk/express";
 import axios from "axios";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
-import { PDFParse } from "pdf-parse";
+import pdfParse from "pdf-parse/lib/pdf-parse.js";
 
 const AI = new OpenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -276,11 +276,8 @@ export const reviewResume = async (req, res) => {
     }
 
     const dataBuffer = fs.readFileSync(resume.path);
-    const parser = new PDFParse({
-      data: dataBuffer,
-    });
 
-    const pdfData = await parser.getText();
+    const pdfData = await pdfParse(dataBuffer);
 
     const prompt = `Review the following resume and provide constructive feedback on its strengths, weaknesses, and areas for improvement. Resume Content:\n\n${pdfData.text}`;
 
