@@ -176,7 +176,7 @@ export const generateImage = async (req, res) => {
 export const removeImageBackground = async (req, res) => {
   try {
     const userId = req.userId;
-    const { image } = req.file;
+    const image = req.file;
 
     const plan = req.plan;
 
@@ -190,7 +190,6 @@ export const removeImageBackground = async (req, res) => {
       transformation: [
         {
           effect: "background_removal",
-          backgournd_removal: "remove_the_background",
         },
       ],
     });
@@ -204,7 +203,7 @@ export const removeImageBackground = async (req, res) => {
       },
     });
 
-    res.json({ secure_url });
+    res.json({ content: secure_url });
   } catch (error) {
     console.log(error.message);
 
