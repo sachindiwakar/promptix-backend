@@ -15,7 +15,7 @@ export const generateArticle = async (req, res) => {
   try {
     const userId = req.userId;
 
-    const { prompt, length } = req.body;
+    const { prompt } = req.body;
 
     const plan = req.plan;
     const free_usage = req.free_usage;
@@ -35,7 +35,7 @@ export const generateArticle = async (req, res) => {
         },
       ],
       temperature: 0.7,
-      max_completion_tokens: length,
+      max_completion_tokens: 4000,
     });
 
     const content = response.choices[0].message.content;
